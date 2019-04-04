@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <fcntl.h>           /* For O_* constants */
+#include <sys/stat.h>        /* For mode constants */
+#include <unistd.h>
+#include <semaphore.h>
+#include <sys/mman.h>
+#include <sys/wait.h>
+
+int main()
+{
+	// Request user to enter winProb, maximumThiefInterval, maximumHunterInterval, 
+	int winProb;
+	int maximumThiefInterval;
+	int maximumHunterInterval;		
+	printf("Enter winProb: ");
+	scanf("%i", winProb);
+	printf("\nEnter maximumThiefInterval: ");
+	scanf("%i", maximumThiefInterval);
+	printf("\nEnter maximumHunterInterval: ");
+	scanf("%i", maximumHunterInterval);
+	printf("\n");
+		
+	// Initializing Smaug
+	int smaugId = fork();
+	if (smaugId <= 0)
+	{
+		 perror("Failed to initialize Smaug. Fork return value <= 0. \n");
+		 return 0;
+	}
+	
+	// Smaug
+	if (getpid() == smaugId)
+	{
+		smaugRoutine();
+	}
+	
+	
+}
+
+// Function simulating Smaug's behaviour
+int smaugRoutine()
+{
+	return 0;
+}
+
+// Function generating a Thief
+int generateThief()
+{
+	return 0;
+}
+
+// Function generating a Hunter
+int generateHunter()
+{
+	return 0;
+}
