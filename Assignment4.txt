@@ -34,7 +34,19 @@ int main()
 	if (getpid() == smaugId)
 	{
 		smaugRoutine();
+		// Kill Smaug process when conditions are met
+		smaugId = -1;
+		exit(0);
 	}
+	
+	// Keep generating Thiefs and Hunters until Smaug terminates
+	while (smaugId > 0)
+	{
+		generateThief();
+		generateHunter();
+	}
+	
+	
 	
 	
 }
@@ -51,8 +63,18 @@ int generateThief()
 	return 0;
 }
 
+// Function simulating Thief's behaviour
+int thiefRoutine()
+{
+}
+
 // Function generating a Hunter
 int generateHunter()
 {
 	return 0;
+}
+
+//Function simulating Hunter's behaviour
+int hunterRoutine()
+{
 }
