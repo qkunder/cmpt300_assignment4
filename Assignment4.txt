@@ -8,6 +8,12 @@
 #include <sys/mman.h>
 #include <sys/wait.h>
 
+// sem1: thiefPlaying waited on by thiefs, signaled by Smaug
+// sem2: hunterFighting waited on by hunter, signaled by Smaug
+// sem3: smaugSleep waited on by Smaug and signaled by theif/hunter after they are done playing/fighting and about to be terminated
+
+
+
 int main()
 {
 	// Request user to enter winProb, maximumThiefInterval, maximumHunterInterval, 
@@ -42,11 +48,10 @@ int main()
 	// Keep generating Thiefs and Hunters until Smaug terminates
 	while (smaugId > 0)
 	{
+		
 		generateThief();
 		generateHunter();
 	}
-	
-	
 	
 	
 }
@@ -61,6 +66,10 @@ int smaugRoutine()
 int generateThief()
 {
 	return 0;
+	if (fork()==0)
+	{
+		do th
+	}
 }
 
 // Function simulating Thief's behaviour
