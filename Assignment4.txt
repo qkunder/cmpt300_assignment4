@@ -7,12 +7,17 @@
 #include <semaphore.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 // sem1: thiefPlaying waited on by thiefs, signaled by Smaug
 // sem2: hunterFighting waited on by hunter, signaled by Smaug
 // sem3: smaugSleep waited on by Smaug and signaled by theif/hunter after they are done playing/fighting and about to be terminated
+// sem4: smaugHasVisitors 
+// mutex4: smaugJewel ???
 
-
+int jewels;
+int defeatedThiefs = 0;
+int defeatedHunters = 0;
 
 int main()
 {
@@ -52,14 +57,53 @@ int main()
 		generateThief();
 		generateHunter();
 	}
-	
-	
 }
 
 // Function simulating Smaug's behaviour
 int smaugRoutine()
-{
-	return 0;
+{	
+	while (jewels < 80 || jewels > 0 || defeatedThiefs < 3 || defeatedHunters < 4)
+	{
+		// Smaug is sleeping after playing/fighting
+		printf("Smaug goes to sleep... \n");
+		sleep(1);
+		// Smaug goes back to sleep if no visitors are present
+		while (thiefPlaying >= 0 || hunterFighting >= 0)
+		{
+			printf("No visitors: Smaug goes to sleep... \n");
+			sleep(1);
+			printf("Smaug wakes up... \n");
+			printf("Smaug takes a deep breath... \n");
+		}
+		printf("Smaug wakes up... \n");
+		printf("Smaug takes a deep breath... \n");
+		
+
+		
+		// If Thief is present, play with a Thief
+		if (thiefPlaying < 0)
+		{
+			printf("Smaug smells a Thief... \n");
+			sem_post(thiefPlaying);
+			sem_wait(smaugSleep);
+		}
+		
+		// Otherwise, fight with a Bounty Hunter 
+		else
+		{
+			print("Smaug smells a Bounty Hunter... \n");
+			sem_post(hunterFighting);
+			sem_wait(smaugSleep);
+		}
+	}
+	
+	// Smaug is being terminated
+	if (jewels >= 80) {printf("Smaug has 80 jewels now! \n");}
+	else if (jewels < 0) {printf("Smaug has lost his treasure! \n");}
+	else if (defeatedThiefs >3 ) {printf("Smaug has defeated 3 Thiefs! \n");}
+	else {printf("Smaug has defeated 4 Bounty Hunters! \n");}
+	exit(0);
+	
 }
 
 // Function generating a Thief
@@ -75,15 +119,17 @@ int generateThief()
 // Function simulating Thief's behaviour
 int thiefRoutine()
 {
+	
 }
 
 // Function generating a Hunter
 int generateHunter()
 {
-	return 0;
+	
 }
 
 //Function simulating Hunter's behaviour
 int hunterRoutine()
 {
+	
 }
