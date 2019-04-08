@@ -214,10 +214,6 @@ int generateHunter()
     int exit_status;
     int *smaugAlive;
 
-    int* TEST;
-    sem_getvalue(smaugExist, TEST);
-    printf("TEST =  %i \n", *TEST);
-    
     while(!simulationDone) 
     {
         waitpid(-1, &exit_status, WNOHANG); // -1 means wait for any, WNOHANG ensures non-blocking
