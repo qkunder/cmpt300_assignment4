@@ -20,9 +20,6 @@ typedef  struct timeval previousThiefArrivalTime;
 typedef  struct timeval previousHunterArrivalTime;
 static int seed = 1;
 
-
-// mutexes
-
 //semaphores
 // sem1: thiefPlaying waited on by thiefs, signaled by Smaug
 // sem2: hunterFighting waited on by hunter, signaled by Smaug
@@ -43,7 +40,7 @@ sem_t *hunterCount;   // incremented/decremented only by Bunty Hunter Process
 sem_t *thiefPlay;    // decremented(locked) by Thief Process, incremented by Smaug 
 sem_t *hunterFight;  // decremented(locked) by Hunter Process, incremented by Smaug 
 sem_t *smaugSleep;
-sem_t *smaugExist;      
+sem_t *smaugExist;   
 
 
 // -------------------- Functions --------------------
@@ -80,9 +77,9 @@ int smaugRoutine()
     int smaugJewels = 30;
     int defeatedThiefs = 0;
     int defeatedHunters = 0;
-    int *enchantedThiefsCount;
-    int *enchantedHuntersCount;
-    int *enchantedVisitorsCount;
+    int enchantedThiefsCount;
+    int enchantedHuntersCount;
+    int enchantedVisitorsCount;
 
     while (smaugJewels < 80 && smaugJewels > 0 && defeatedThiefs < 3 && defeatedHunters < 4)
     {
@@ -92,18 +89,14 @@ int smaugRoutine()
         printf("Smaug wakes up... \n");
         printf("Smaug takes a deep breath... \n");
         
-        sem_getvalue(visitorCount, enchantedVisitorsCount);
-        printf("Smaug smells %i Visitors...\n", *enchantedVisitorsCount);
-        
-        sem_getvalue(thiefCount, enchantedThiefsCount);
-        printf("Smaug smells %i Thiefs...\n", *enchantedThiefsCount);
+        sem_getvalue(thiefCount, &enchantedThiefsCount);
+        printf("Smaug smells %i Thiefs...\n", enchantedThiefsCount);
 
-        sem_getvalue(hunterCount, enchantedHuntersCount);
-        printf("Smaug smells %i Bounty Hunters...", *enchantedHuntersCount);
-      
+        sem_getvalue(hunterCount, &enchantedHuntersCount);
+        printf("Smaug smells %i Bounty Hunters...\n", enchantedHuntersCount);
         
         // If Thief is present, play with a Thief
-        if (*enchantedThiefsCount > 0)
+        if (enchantedThiefsCount > 0)
         {
             printf("Smaug plays with a Thief... \n");
             try_signal(thiefPlay);
@@ -149,19 +142,48 @@ int smaugRoutine()
     else if (smaugJewels <= 0) {printf("Smaug has lost his treasure! \n");}
     else if (defeatedThiefs >=3 ) {printf("Smaug has defeated 3 Thiefs! \n");}
     else {printf("Smaug has defeated 4 Bounty Hunters! \n");}
+    printf("*************************************************\n");
+    printf("************* SMAUG TERMINATES HERE *************\n");
+    printf("*************************************************\n");
     try_wait(smaugExist);
+
+    sem_getvalue(thiefCount, &enchantedThiefsCount);
+    printf("%i Thiefs remain in the valley. LEAVE NOW!...\n", enchantedThiefsCount);
+
+    sem_getvalue(hunterCount, &enchantedHuntersCount);
+    printf("%i Bounty Hunters remain in the valley. LEAVE NOW!...\n", enchantedHuntersCount);
+    
+    for (int i=0; i<enchantedThiefsCount; i++)
+    {
+      try_signal(thiefPlay);
+      try_signal(visitorCount);
+    }
+
+    for (int i=0; i<enchantedHuntersCount; i++)
+    {
+      try_signal(hunterFight);
+      try_signal(visitorCount);
+    }
+
     exit(0);
 }
 
 // Function simulating Thief's behaviour
 int thiefRoutine()
 {
+  int smaugAlive; 
   printf("Thief %i enters the valley...\n",getpid());
   try_signal(thiefCount);
 	printf("Thief %i becomes enchanted...\n",getpid());
   try_signal(visitorCount);	
 	try_wait(thiefPlay);
 	try_signal(smaugSleep);
+  sem_getvalue(smaugExist, &smaugAlive);
+  if (!smaugAlive)
+  {
+    printf("Thief %i leaves the valley...\n", getpid());
+    exit(0);
+  }
   try_wait(thiefCount);
 	printf("Thief %i leaves the valley...\n", getpid());
 	exit(0);
@@ -170,10 +192,17 @@ int thiefRoutine()
 //Function simulating Hunter's behaviour
 int hunterRoutine()
 {
+  int smaugAlive;
   printf("Hunter %i enters the valley...\n", getpid());
   try_signal(hunterCount);
   printf("Hunter %i becomes enchanted...\n", getpid());
   try_signal(visitorCount);
+  sem_getvalue(smaugExist, &smaugAlive);
+  if (!smaugAlive)
+  {
+    printf("Bounty Hunter %i leaves the valley...\n", getpid());
+    exit(0);
+  }
 	try_wait(hunterFight);
 	try_signal(smaugSleep);
   try_wait(hunterCount);
@@ -186,9 +215,9 @@ int generateThief()
 {
     int thiefInterval;
     int exit_status;
-    int *smaugAlive;  
+    int smaugAlive = 1;
 
-    while(!simulationDone) 
+    while(smaugAlive) 
     {
         waitpid(-1, &exit_status, WNOHANG); // -1 means wait for any, WNOHANG ensures non-blocking
         thiefInterval = 0 + rand()%(maximumThiefInterval - 0 + 1);
@@ -203,6 +232,10 @@ int generateThief()
             thiefRoutine();
             continue;
         }
+        else 
+        {
+          sem_getvalue(smaugExist, &smaugAlive);
+        }
     }
     return 0;
 }
@@ -212,10 +245,10 @@ int generateHunter()
 {
     int hunterInterval;
     int exit_status;
-    int *smaugAlive;
+    int smaugAlive = 1;
 
-    while(!simulationDone) 
-    {
+    while(smaugAlive) 
+    { 
         waitpid(-1, &exit_status, WNOHANG); // -1 means wait for any, WNOHANG ensures non-blocking
         hunterInterval = 0 + rand()%(maximumHunterInterval - 0 + 1);
         usleep(hunterInterval);
@@ -228,6 +261,10 @@ int generateHunter()
         else if(hunterId==0){
             hunterRoutine();
             continue;
+        }
+        else 
+        {
+          sem_getvalue(smaugExist, &smaugAlive);
         }  
     }
     return 0;
@@ -237,8 +274,7 @@ int generateHunter()
 int main()
 {
     srand(seed);
-    // Request user to enter winProb, maximumThiefInterval, maximumHunterInterval,
-
+    // Request user to enter winProb, maximumThiefInterval, maximumHunterInterval
     /*
     printf("Enter winProb (0-100): ");
     scanf("%d", &winProb);
@@ -249,7 +285,7 @@ int main()
     printf("\n");
     */
 
-    winProb = 75;
+    winProb = 0;
     maximumThiefInterval = 1000000;
     maximumHunterInterval = 1000000;
 
@@ -309,20 +345,19 @@ int main()
     // wait until childrem processes have terminated before moving on in the code
     int exit_status;
     pid_t wpid;
-    while ((wpid = wait(&exit_status)) > 0){};
-    
+    while ((wpid = wait(&exit_status)) > 0){};  
 
     // destroy mutexes
     // TO DO
     // destroy semaphroes
-    sem_destroy (visitorCount);
-    sem_destroy (thiefCount);
-    sem_destroy (hunterCount);
-    sem_destroy (thiefPlay);
-    sem_destroy (hunterFight);
-    sem_destroy (smaugSleep);
+    sem_close (visitorCount);
+    sem_close (thiefCount);
+    sem_close (hunterCount);
+    sem_close (thiefPlay);
+    sem_close (hunterFight);
+    sem_close (smaugSleep);
+    sem_close (smaugExist);
     
     // terminate main
     exit(0);
 }
-
